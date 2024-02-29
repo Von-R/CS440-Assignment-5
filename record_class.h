@@ -11,24 +11,52 @@ class Records{
     public:
     
     struct EmpRecord {
-        int eid;
+        int eid = -1;
         string ename;
         int age;
         double salary;
     }emp_record;
 
     struct DeptRecord {
-        int did;
+        int did = -1;
         string dname;
         double budget;
-        int managerid;
+        int managerid = 0;
     }dept_record;
 
-    /*** You can add more variables if you want below ***/
+    struct JoinRecord {
+        int eid = 0;
+        string ename;
+        int age;
+        double salary;
+        int did = 0;
+        string dname;
+        double budget;
+    }join_record;
 
     int no_values = 0; //You can use this to check if you've don't have any more tuples
     int number_of_emp_records = 0; // Tracks number of emp_records you have on the buffer
     int number_of_dept_records = 0; //Track number of dept_records you have on the buffer
+    int fileStreamIndex = 1; // Tracks the index of the file stream you are currently using
+
+    void printEmpRecord() {
+        cout << "Eid:" << emp_record.eid << ", Ename: " << emp_record.ename << ", Age: " << emp_record.age << ", Salary " << emp_record.salary << ", no_values: " << no_values << endl;
+    }
+
+    void printDeptRecord() {
+        cout << "Did:" << dept_record.did << ", Dname: " << dept_record.dname << ", Budget: " << dept_record.budget << ", Managerid " << dept_record.managerid << ", no_values: " << no_values << endl;
+    }
+
+    void printJoinRecord() {
+        cout << "Eid:" << join_record.eid << ", Ename: " << join_record.ename << ", Age: " << join_record.age << ", Salary " << join_record.salary << ", Did: " << join_record.did << ", Dname: " << join_record.dname << ", Budget: " << join_record.budget << endl;
+    }
+
+    Records(){};
+
+
+    Records(int fileStreamIndex) {
+        this->fileStreamIndex = fileStreamIndex;
+    }
 };
 
 // Grab a single block from the Emp.csv file and put it inside the EmpRecord structure of the Records Class
@@ -58,6 +86,7 @@ Records Grab_Emp_Record(fstream &empin) {
         return emp;
     } else {
         emp.no_values = -1;
+        emp.emp_record.eid = -1;
         return emp;
     }
 }
@@ -83,10 +112,10 @@ Records Grab_Dept_Record(fstream &deptin) {
         dept.emp_record.ename = "";
         dept.emp_record.age = 0;
         dept.emp_record.salary = 0;
-
         return dept;
     } else {
         dept.no_values = -1;
+        dept.dept_record.did = -1;
         return dept;
     }
 }
