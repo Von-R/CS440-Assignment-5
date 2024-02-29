@@ -32,6 +32,7 @@ void Merge_Join_Runs(){
    
 
     //and store the Joined new tuples using PrintJoin() 
+    // PrintJoin(newTuple, joinout);
     return;
 }
 
@@ -49,9 +50,13 @@ int main() {
     joinout.open("Join.csv", ios::out | ios::app);
 
     //1. Create runs for Dept and Emp which are sorted using Sort_Buffer()
+    Sort_Buffer(&empin);
+    Sort_Buffer(&deptin);
 
 
     //2. Use Merge_Join_Runs() to Join the runs of Dept and Emp relations 
+    Merge_Join_Runs(&empin, &deptin, &joinout);
+    
 
 
     //Please delete the temporary files (runs) after you've joined both Emp.csv and Dept.csv
