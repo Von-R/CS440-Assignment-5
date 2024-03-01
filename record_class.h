@@ -57,6 +57,18 @@ class Records{
     Records(int fileStreamIndex) {
         this->fileStreamIndex = fileStreamIndex;
     }
+
+    size_t sizeOfDeptRecord() {
+    return sizeof(dept_record.did) + sizeof(dept_record.budget) + sizeof(dept_record.managerid) + dept_record.dname.size();
+    }
+
+    size_t sizeOfEmpRecord() {
+        return sizeof(emp_record.eid) + sizeof(emp_record.age) + sizeof(emp_record.salary) + emp_record.ename.size();
+    }
+
+    size_t sizeOfJoinRecord() {
+        return sizeof(join_record.eid) + sizeof(join_record.age) + sizeof(join_record.salary) + sizeof(join_record.did) + join_record.ename.size() + join_record.dname.size();
+    }
 };
 
 // Grab a single block from the Emp.csv file and put it inside the EmpRecord structure of the Records Class
@@ -69,12 +81,16 @@ Records Grab_Emp_Record(fstream &empin) {
         stringstream s(line);
         // gets everything in stream up to comma
         getline(s, word,',');
+        
         emp.emp_record.eid = stoi(word);
         getline(s, word, ',');
+      
         emp.emp_record.ename = word;
         getline(s, word, ',');
+        
         emp.emp_record.age = stoi(word);
         getline(s, word, ',');
+       
         emp.emp_record.salary = stod(word);
 
         //Ensuring that you cannot use both structure (EmpEecord, DeptRecord) at the same memory block / time 
@@ -99,13 +115,16 @@ Records Grab_Dept_Record(fstream &deptin) {
     if (getline(deptin, line, '\n')) {
         stringstream s(line);
         getline(s, word,',');
-        cout << "ERR102: " << word << endl;
+       
         dept.dept_record.did = stoi(word);
         getline(s, word, ',');
+       
         dept.dept_record.dname = word;
         getline(s, word, ',');
+      
         dept.dept_record.budget = stod(word);
         getline(s, word, ',');
+        
         dept.dept_record.managerid = stoi(word);
 
         //Ensuring that you cannot use both structure (EmpEecord, DeptRecord) at the same memory block / time 
