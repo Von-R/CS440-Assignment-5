@@ -130,14 +130,14 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
         if (deptFlag) {
             // If buffer is partially full and this is the first run, the result is just the fully sorted relation
             if (( numElems < BUFFER_SIZE ) && tempDeptFiles.size() == 0) {
-                runFileName = "deptSorted.csv";
+                runFileName = "DeptSorted.csv";
             } else {
             runFileName = "initialRunDept" + to_string(tempDeptFiles.size()) + ".csv";
             tempDeptFiles.push_back(runFileName);
             }
         } else {
             if (( numElems < BUFFER_SIZE - 1) && tempEmpFiles.size() == 0) {
-                runFileName = "empSorted.csv";
+                runFileName = "EmpSorted.csv";
             } else {
             runFileName = "initialRunEmp" + to_string(tempEmpFiles.size()) + ".csv";
             tempEmpFiles.push_back(runFileName);
@@ -380,9 +380,9 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
 void Join_Runs(fstream &joinout) {
     fstream empOut;
     fstream deptOut;
-    bool empSmaller = relationRowCount("empSorted.csv") < relationRowCount("deptSorted.csv");
-    empOut.open("empSorted.csv", ios::in);
-    deptOut.open("deptSorted.csv", ios::in);
+    bool empSmaller = relationRowCount("EmpSorted.csv") < relationRowCount("DeptSorted.csv");
+    empOut.open("EmpSorted.csv", ios::in);
+    deptOut.open("DeptSorted.csv", ios::in);
 
     Records joinRecord;
     Records tempRecord;
@@ -452,12 +452,12 @@ void Join_Runs(fstream &joinout) {
 
         
     }
-    // Deleting empSorted.csv and deptSorted.csv
-        if (remove("empSorted.csv") != 0) {
-            perror("Error deleting empSorted.csv");
+    // Deleting EmpSorted.csv and DeptSorted.csv
+        if (remove("EmpSorted.csv") != 0) {
+            perror("Error deleting EmpSorted.csv");
         }
-        if (remove("deptSorted.csv") != 0) {
-            perror("Error deleting deptSorted.csv");
+        if (remove("DeptSorted.csv") != 0) {
+            perror("Error deleting DeptSorted.csv");
         }
 }
 
