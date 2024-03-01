@@ -16,6 +16,28 @@ vector<Records> buffers(BUFFER_SIZE);
 vector<string> tempEmpFiles;
 vector<string> tempDeptFiles;
 
+int countElements(vector<Records> &buffers, bool deptFlag) {
+    int count = 0;
+    if (deptFlag) {
+        for (Records& it: buffers) {
+            if (it.dept_record.did != 0) {
+                count++;
+            }
+        }
+        cout << "Number of dept elements in buffer: " << count << endl;
+    }
+    else if (!deptFlag) {
+    for (Records& it: buffers) {
+        if (it.emp_record.eid != -1) {
+            count++;
+        }
+        cout << "Number of emp elements in buffer: " << count << endl;
+    }
+    
+    }
+    return count;
+}
+
 // Used in priority queue to sort records
 struct CompareRecordsEmp {
     bool operator()(const Records& a, const Records& b) const {
@@ -35,26 +57,8 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
     Records tempRecord;
     int runs = 0;
     int counter = 0;
+    int numElems = 0;
 
-    // Count number of rows in inputRelation
-    /*
-        int rowCount = 0;
-        streampos pos = inputRelation.tellg();
-        string line;
-        while (getline(inputRelation, line)) {
-            rowCount++;
-        }
-        inputRelation.seekg(pos, ios::beg);
-       */
-    
-    
-
-    //if (deptFlag) {
-        // cout<< "Sorting Dept" << endl;
-    //} else {
-        // cout<< "Sorting Emp" << endl;
-    //}
-    
     // Loop gets records from Emp.csv and loads them into the page buffer: loads a single record
     // Terminates when main memory is full or no more records to load
 
@@ -66,27 +70,21 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
     // 5. Repeat until no more records to load
 
     // Terminate loop when no more records to load
-    if (deptFlag)
-        // cout<< "entering loop" << endl;
     while (tempRecord.no_values != -1) {
-
-        // Load records into the buffer
-        //if (deptFlag)
-            // cout<< "Loading Dept records into buffer" << endl;
-        //else
-            // cout<< "Loading Emp records into buffer" << endl;
             
-        while (counter < BUFFER_SIZE && tempRecord.no_values != -1) {
-            // cout<< "counter: " << counter << endl;
+        while (counter < BUFFER_SIZE - 1 && tempRecord.no_values != -1) {
+            cout<< "counter: " << counter << endl;
             if (deptFlag) {
                 tempRecord = Grab_Dept_Record(inputRelation);
-                cout<< "tempRecord.did: " << tempRecord.dept_record.did << endl;
+                cout<< "Dept record just grabbed: ";
+                tempRecord.printDeptRecord();
             }
             else {
                 tempRecord = Grab_Emp_Record(inputRelation);
-                // cout<< "tempRecord.eid: " << tempRecord.emp_record.eid << endl;
+                cout << "Emp record just grabbed: ";
+                tempRecord.printEmpRecord();
             }
-            // cout<< "tempRecord.no_values: " << tempRecord.no_values << endl;
+            cout<< "tempRecord.no_values: " << tempRecord.no_values << endl;
             if (tempRecord.no_values == -1) {
                 break;
                 }
@@ -94,8 +92,16 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
             // Load record into buffer
             // cout<< "Loading record into buffer" << endl;
             // cout<< "Buffer size: " << buffers.size() << endl;
-            //// cout<< "Printing buffer.at(counter): " << buffers.at(counter) << endl;
-            buffers.at(counter++) = tempRecord;
+            //if (deptFlag){
+                if (counter < BUFFER_SIZE - 1)
+                buffers.at(counter++) = tempRecord;
+           // }
+            if (deptFlag)
+                cout << "Printing buffer.at(counter).dept_record.managerid: " << buffers.at(counter).dept_record.managerid << endl;
+            else 
+                cout << "Printing buffer.at(counter).emp_record.eid: " << buffers.at(counter).emp_record.eid << endl;
+          
+            
             // cout<< "Record loaded into buffer" << endl;
         }
 
@@ -134,21 +140,28 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
 
         // Write sorted records to temporary files (runs)
         vector<Records>::iterator it = buffers.begin();
+        numElems = countElements(buffers, deptFlag);
+        cout << "Number of elements in buffer: " << numElems << endl;
         if (deptFlag) {
-            //if (rowCount < BUFFER_SIZE){
-              //      runFileName = "deptSorted.csv";
-                //    tempDeptFiles.push_back(runFileName);
-            //} else {
+            // If buffer is partially full and this is the first run, the result is just the fully sorted relation
+            if (( numElems < BUFFER_SIZE ) && tempDeptFiles.size() == 0) {
+                runFileName = "deptSorted.csv";
+            } else {
             runFileName = "initialRunDept" + to_string(tempDeptFiles.size()) + ".csv";
             tempDeptFiles.push_back(runFileName);
-            //}
+            }
         } else {
-            //if (rowCount < BUFFER_SIZE){
-              //      runFileName = "empSorted.csv";
-                //    tempEmpFiles.push_back(runFileName);
-            //} else {
+            if (( numElems < BUFFER_SIZE - 1) && tempEmpFiles.size() == 0) {
+                cout << "EMPSORTED TRIGGERED" << endl;
+                cout << "numElems: " << numElems << endl;
+                cout << "tempEmpFiles.size(): " << tempEmpFiles.size() << endl;
+                runFileName = "empSorted.csv";
+            } else {
             runFileName = "initialRunEmp" + to_string(tempEmpFiles.size()) + ".csv";
+            cout << "WRITING TO FILE: " << runFileName << endl;
+            cout << "Tempfile size before pushback: " << tempEmpFiles.size() << endl;
             tempEmpFiles.push_back(runFileName);
+             cout << "Tempfile size after pushback: " << tempEmpFiles.size() << endl;
             }
         }
         
@@ -413,8 +426,8 @@ void Join_Runs(fstream &joinout) {
     cout << "Joining runs" << endl;
     fstream empOut;
     fstream deptOut;
-    empOut.open("EmpSorted.csv", ios::in);
-    deptOut.open("DeptSorted.csv", ios::in);
+    empOut.open("empSorted.csv", ios::in);
+    deptOut.open("deptSorted.csv", ios::in);
 
 
     Records empRecord;
@@ -511,18 +524,18 @@ int main() {
     joinout.open("Join.csv", ios::out | ios::app);
 
     //1. Create runs for Dept and Emp which are sorted using Sort_Buffer()
+    cout << "Creating runs for Dept and Emp" << endl;
+    cout << "Sorting Emp" << endl;
     Sort_Buffer(empFlag, empin);
-   
+    cout << "Sorting Dept" << endl;
     Sort_Buffer(deptFlag, deptin);
 
 
     //2. Use Merge_Join_Runs() to Join the runs of Dept and Emp relations 
-    //Merge_Join_Runs(empFlag, tempEmpFiles, 0);
-    //Merge_Join_Runs(deptFlag, tempDeptFiles, 0);
+    Merge_Join_Runs(empFlag, tempEmpFiles);
+    Merge_Join_Runs(deptFlag, tempDeptFiles);
 
-    //Join_Runs(joinout);
-    
-
+    Join_Runs(joinout);
 
     //Please delete the temporary files (runs) after you've joined both Emp.csv and Dept.csv
 

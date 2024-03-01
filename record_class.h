@@ -99,6 +99,7 @@ Records Grab_Dept_Record(fstream &deptin) {
     if (getline(deptin, line, '\n')) {
         stringstream s(line);
         getline(s, word,',');
+        cout << "ERR102: " << word << endl;
         dept.dept_record.did = stoi(word);
         getline(s, word, ',');
         dept.dept_record.dname = word;
