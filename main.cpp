@@ -8,7 +8,10 @@ using namespace std;
 #define BUFFER_SIZE 22
 
 // Vectors we'll be using
+
+// General main memory buffer
 vector<Records> buffers(BUFFER_SIZE);
+// Temporary file names
 vector<string> tempEmpFiles;
 vector<string> tempDeptFiles;
 
@@ -37,7 +40,6 @@ int relationRowCount(string filename) {
     string line;
     fstream inputRelation;
     inputRelation.open(filename, ios::in);
-   // streampos pos = inputRelation.tellg();
     int count = 0;
     while (getline(inputRelation, line)) {
         count++;
@@ -59,6 +61,7 @@ struct CompareRecordsDept {
     }
 };
 
+// Joins tuples from the Emp and Dept relations
 Records Join_Tuples(Records empRecord, Records deptRecord) {
     Records joinRecord;
     joinRecord.join_record.eid = empRecord.emp_record.eid;
@@ -71,7 +74,7 @@ Records Join_Tuples(Records empRecord, Records deptRecord) {
     return joinRecord;
 }
 
-//Sorting the buffers in main_memory and storing the sorted records into a temporary file (runs) 
+// Sorts the buffers in main_memory and stores the sorted records into a temporary file (runs) 
 void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
     string runFileName;
     Records tempRecord;
@@ -91,6 +94,7 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
 
     // Terminate loop when no more records to load
     while (tempRecord.no_values != -1) {
+
         // Load records into buffer
         while (counter < BUFFER_SIZE - 1 && tempRecord.no_values != -1) {
             if (deptFlag) {
@@ -99,20 +103,19 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
             else {
                 tempRecord = Grab_Emp_Record(inputRelation);
             }
+
             // If there are no more records to load, break
             if (tempRecord.no_values == -1) {
                 break;
                 }
 
-                // If there's room, add record to buffer
-                if (counter < BUFFER_SIZE - 1)
-                    buffers.at(counter++) = tempRecord;
+            // If there's room, add record to buffer
+            if (counter < BUFFER_SIZE - 1)
+                buffers.at(counter++) = tempRecord;
         }
 
-    
         // Sort the buffer
         if (deptFlag) {
-          
             std::sort(buffers.begin(), buffers.end(), [](const Records& a, const Records& b) {
                 return a.dept_record.managerid < b.dept_record.managerid;
                 for (Records& it: buffers){
@@ -128,6 +131,7 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
         vector<Records>::iterator it = buffers.begin();
         numElems = countElements(buffers, deptFlag);
         if (deptFlag) {
+
             // If buffer is partially full and this is the first run, the result is just the fully sorted relation
             if (( numElems < BUFFER_SIZE ) && tempDeptFiles.size() == 0) {
                 runFileName = "DeptSorted.csv";
@@ -145,6 +149,7 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
         }
         
         std::fstream runFile(runFileName, std::ios::out | std::ios::trunc);
+
         // Write records to run file
         while (it != buffers.end() && it->no_values != -1) {
             if (deptFlag) {
@@ -167,8 +172,10 @@ void Sort_Buffer(bool deptFlag, fstream &inputRelation) {
 
         // Increment runs
         runs++;
+
         // Close run file
         runFile.close();
+
         // Reset counter
         counter = 0;
 
@@ -220,6 +227,7 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
     
     // Go until there are no more runs to merge
     while (runs > 0) {
+
         // Open streams for as many runs as possible: up to 21 in this case
         vector<std::fstream> runFiles(BUFFER_SIZE - 1);
 
@@ -232,8 +240,10 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
 
         // Populate the priority queue with the first record from each run
         for (int i = 0; i < loopIndex; i++) {
+
             // Open run file
             runFiles.at(i).open(tempFiles.at(i + incrementer), std::ios::in);
+
             // Load first record from run file
             if (deptFlag) {
                 tempRecord = Grab_Dept_Record(runFiles.at(i));
@@ -245,15 +255,16 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
             if (tempRecord.no_values == -1) {
                 continue;
             }
+
             // Set file stream index
             tempRecord.fileStreamIndex = i;
+
             // Add record to priority queue
             if (deptFlag) {
                 mainMemoryDept.push(tempRecord);
             } else {
                 mainMemoryEmp.push(tempRecord);
             }
-            
         }
 
         // Used to increment through tempFiles, specifically
@@ -271,6 +282,7 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
             newTempFiles.push_back(newFileName);
             newRuns++;
         } 
+
         // Otherwise, write to EmpSorted.csv
         else if (!deptFlag) {
             newRunFile.open("EmpSorted.csv", std::ios::out | std::ios::trunc);
@@ -290,42 +302,43 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
         
         // Write records to new run file as long as there are records in main memory
         if (deptFlag){
-        while (!mainMemoryDept.empty()) {
+            while (!mainMemoryDept.empty()) {
+                
+                // Retrieve smallest record
+                tempRecord = mainMemoryDept.top();
+
+                // Then move smallest record from priority queue
+                mainMemoryDept.pop();
+                if (tempRecord.dept_record.did <= 0) {
+                    continue;
+                }
+
+                // Write smallest record to new run file
+                if (deptFlag) {
+                    newRunFile << tempRecord.dept_record.did << "," << tempRecord.dept_record.dname << "," << tempRecord.dept_record.budget << "," << tempRecord.dept_record.managerid << endl;
+                } else {
+                    newRunFile << tempRecord.emp_record.eid << "," << tempRecord.emp_record.ename << "," << tempRecord.emp_record.age << "," << tempRecord.emp_record.salary << endl;
+                }
+
+                // Replace smallest record in priority queue with next record from the same run
+                // Make sure to correctly associate the new record with the correct file stream
+                tmpIndex = tempRecord.fileStreamIndex;
             
-            // Retrieve smallest record
-            tempRecord = mainMemoryDept.top();
+                // Grab next record from the same run
+                tempRecord = Grab_Dept_Record(runFiles.at(tempRecord.fileStreamIndex));
+                
+                // Set file stream index
+                tempRecord.fileStreamIndex = tmpIndex;
 
-            // Then move smallest record from priority queue
-            mainMemoryDept.pop();
-            if (tempRecord.dept_record.did <= 0) {
-                continue;
+                // EOF reached for run file
+                if (tempRecord.no_values == -1) {
+                    continue;
+                } else {
+
+                    // Add replacement record to main memory
+                    mainMemoryDept.push(tempRecord);
+                }
             }
-
-            // Write smallest record to new run file
-            if (deptFlag) {
-                newRunFile << tempRecord.dept_record.did << "," << tempRecord.dept_record.dname << "," << tempRecord.dept_record.budget << "," << tempRecord.dept_record.managerid << endl;
-            } else {
-                newRunFile << tempRecord.emp_record.eid << "," << tempRecord.emp_record.ename << "," << tempRecord.emp_record.age << "," << tempRecord.emp_record.salary << endl;
-            }
-
-            // Replace smallest record in priority queue with next record from the same run
-            // Make sure to correctly associate the new record with the correct file stream
-            tmpIndex = tempRecord.fileStreamIndex;
-          
-            // Grab next record from the same run
-            tempRecord = Grab_Dept_Record(runFiles.at(tempRecord.fileStreamIndex));
-            
-            // Set file stream index
-            tempRecord.fileStreamIndex = tmpIndex;
-
-            // EOF reached for run file
-            if (tempRecord.no_values == -1) {
-                continue;
-            } else {
-                // Add replacement record to main memory
-                mainMemoryDept.push(tempRecord);
-            }
-        }
         } else if (!deptFlag) {
             while (!mainMemoryEmp.empty()) {
             
@@ -373,22 +386,20 @@ void Merge_Join_Runs(bool deptFlag, vector<string> tempFiles, int iteration = 0)
     // If a new iteration of run was produced, call Merge_Runs recursively on new set of runs and new set of tempFile names
     if (newRuns > 0) {
             newRunFile.close();
-            Merge_Join_Runs(deptFlag, newTempFiles, iteration);  // Recursively merge runs until all runs are merged
+
+            // Recursively merge runs until all runs are merged
+            Merge_Join_Runs(deptFlag, newTempFiles, iteration);  
         }  
 }
 
+// Performs a join on the sorted runs of the Emp and Dept relations, iterating through both and matching records on eid and managerid
 void Join_Runs(fstream &joinout) {
     fstream empOut;
     fstream deptOut;
     bool empSmaller = relationRowCount("EmpSorted.csv") < relationRowCount("DeptSorted.csv");
     empOut.open("EmpSorted.csv", ios::in);
     deptOut.open("DeptSorted.csv", ios::in);
-
     Records joinRecord;
-    Records tempRecord;
-    streampos deptPosBeforeComp;
-    streampos deptPosAfterComp;
-    int matchCounter = 0;
 
     buffers.at(0) = Grab_Emp_Record(empOut);
     buffers.at(1) = Grab_Dept_Record(deptOut);
@@ -397,11 +408,12 @@ void Join_Runs(fstream &joinout) {
     // As soon as one relation is exhausted, the join is complete: no more records to join
     while (buffers.at(0).no_values != -1 && buffers.at(1).no_values != -1) {
         if (empSmaller) {
+
             // If match is found, search for duplicate matches and perform cartisian product
             // Using one page at a time for comparison
             if (buffers.at(0).emp_record.eid == buffers.at(1).dept_record.managerid) {
-              
                 do {
+
                     // Join the matching records
                     joinRecord = Join_Tuples(buffers.at(0), buffers.at(1));
                     
@@ -415,6 +427,8 @@ void Join_Runs(fstream &joinout) {
 
                 // Grab next employee record
                 buffers.at(0) = Grab_Emp_Record(empOut);
+
+            // If eid is lesser than managerid, grab next employee record
             } else if (buffers.at(0).emp_record.eid < buffers.at(1).dept_record.managerid) {
                 buffers.at(0) = Grab_Emp_Record(empOut);
                 buffers.at(0).printEmpRecord();
@@ -426,33 +440,37 @@ void Join_Runs(fstream &joinout) {
             }
         }
         else {
+
             // If match is found, search for duplicate matches and perform cartisian product
             // Using one page at a time for comparison
             if (buffers.at(0).emp_record.eid == buffers.at(1).dept_record.managerid) {
                     do {
+
                         // Join the matching records
                         joinRecord = Join_Tuples(buffers.at(0), buffers.at(1));
+
                         // Write the join record to Join.csv
                         joinout << joinRecord.join_record.eid << "," << joinRecord.join_record.ename << "," << joinRecord.join_record.age << "," << joinRecord.join_record.salary << "," << joinRecord.join_record.did << "," << joinRecord.join_record.dname << "," << joinRecord.join_record.budget << endl;
+                       
                         // Grab next department record
-                    
                         buffers.at(0) = Grab_Emp_Record(empOut);
                     } while (buffers.at(0).emp_record.eid == buffers.at(1).dept_record.managerid);
 
                     // Grab next employee record
                     buffers.at(1) = Grab_Dept_Record(deptOut);
+            
+            // If managerid is lesser than eid, grab next dept record
             }else if (buffers.at(0).emp_record.eid > buffers.at(1).dept_record.managerid) {
                 buffers.at(1) = Grab_Dept_Record(deptOut);
             
-            // If managerid is less than eid, grab next department record
+            // If eid is lesser than managerid, grab next emp record
             } else {
                 buffers.at(0) = Grab_Emp_Record(empOut);
             }
-        }
-
-        
+        } 
     }
-    // Deleting EmpSorted.csv and DeptSorted.csv
+
+        // Deleting EmpSorted.csv and DeptSorted.csv
         if (remove("EmpSorted.csv") != 0) {
             perror("Error deleting EmpSorted.csv");
         }
@@ -461,28 +479,8 @@ void Join_Runs(fstream &joinout) {
         }
 }
 
-
-
-
-    /*
-    Grab first record from each file
-    Compare the records on eid and managerid
-    If match, join the records and write to Join.csv
-
-    If not and eid < managerid, grab next record from EmpSorted.csv
-    If not and eid > managerid, grab next record from DeptSorted.csv
-
-    Check for eof
-    Handle duplicates
-    Other edge cases?
-    
-    */
-
-
 int main() {
 
-    //Open file streams to read and write
-    //Opening out two relations Emp.csv and Dept.csv which we want to join
     fstream empin;
     fstream deptin;
     bool empFlag = false;
@@ -504,8 +502,6 @@ int main() {
 
     //3. Join the sorted runs of Dept and Emp relations using Join_Runs()
     Join_Runs(joinout);
-
-    //Please delete the temporary files (runs) after you've joined both Emp.csv and Dept.csv
 
     return 0;
 }
