@@ -4,6 +4,7 @@
 in the EmpRecords) and Dept.csv (Stored in DeptRecords) files.
 */
 #include <bits/stdc++.h>
+#include <limits.h>
 
 using namespace std;
 
@@ -11,14 +12,14 @@ class Records{
     public:
     
     struct EmpRecord {
-        int eid = -1;
+        int eid = INT_MAX;
         string ename;
         int age;
         double salary;
     }emp_record;
 
     struct DeptRecord {
-        int did = -1;
+        int did = INT_MAX;
         string dname;
         double budget;
         int managerid = 0;
@@ -81,28 +82,24 @@ Records Grab_Emp_Record(fstream &empin) {
         stringstream s(line);
         // gets everything in stream up to comma
         getline(s, word,',');
-        
         emp.emp_record.eid = stoi(word);
         getline(s, word, ',');
-      
         emp.emp_record.ename = word;
         getline(s, word, ',');
-        
         emp.emp_record.age = stoi(word);
         getline(s, word, ',');
-       
         emp.emp_record.salary = stod(word);
 
         //Ensuring that you cannot use both structure (EmpEecord, DeptRecord) at the same memory block / time 
-        emp.dept_record.did = 0;
+        emp.dept_record.did = INT_MAX;
         emp.dept_record.dname = "";
         emp.dept_record.budget = 0;
-        emp.dept_record.managerid = 0;
+        emp.dept_record.managerid = INT_MAX;
 
         return emp;
     } else {
         emp.no_values = -1;
-        emp.emp_record.eid = -1;
+        emp.emp_record.eid = INT_MAX;
         return emp;
     }
 }
@@ -114,28 +111,25 @@ Records Grab_Dept_Record(fstream &deptin) {
     Records dept;
     if (getline(deptin, line, '\n')) {
         stringstream s(line);
-        getline(s, word,',');
-       
+        getline(s, word,','); 
         dept.dept_record.did = stoi(word);
         getline(s, word, ',');
-       
         dept.dept_record.dname = word;
         getline(s, word, ',');
-      
         dept.dept_record.budget = stod(word);
         getline(s, word, ',');
         
         dept.dept_record.managerid = stoi(word);
 
         //Ensuring that you cannot use both structure (EmpEecord, DeptRecord) at the same memory block / time 
-        dept.emp_record.eid = 0;
+        dept.emp_record.eid = INT_MAX;
         dept.emp_record.ename = "";
         dept.emp_record.age = 0;
         dept.emp_record.salary = 0;
         return dept;
     } else {
         dept.no_values = -1;
-        dept.dept_record.did = -1;
+        dept.dept_record.did = INT_MAX;
         return dept;
     }
 }
